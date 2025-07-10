@@ -15,6 +15,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Get commit message
+        id: get_commit
+        run: |
+          echo "MESSAGE<<EOF" >> $GITHUB_ENV
+          git log -1 --pretty=format:%s >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
       - name: Run your deploy script
         id: deploy_step
         run: |
@@ -31,6 +38,7 @@ jobs:
           SHA: ${{ github.sha }}
           REF_NAME: ${{ github.ref_name }}
           RUN_ID: ${{ github.run_id }}
+          COMMIT_MSG: ${{ env.MESSAGE }}
           WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
         run: |
           STATUS="✅ Deployment Succeeded"
@@ -66,28 +74,34 @@ jobs:
                         },
                         {
                           "decoratedText": {
-                            "text": "**Message**: $STATUS for job _deploy_"
+                            "text": "**Message**: $COMMIT_MSG"
+                          }
+                        },
+                        {
+                          "buttonList": {
+                            "buttons": [
+                              {
+                                "text": "View Commit",
+                                "onClick": {
+                                  "openLink": {
+                                    "url": "https://github.com/$REPO/commit/$SHA"
+                                  }
+                                }
+                              },
+                              {
+                                "text": "View Workflow",
+                                "onClick": {
+                                  "openLink": {
+                                    "url": "https://github.com/$REPO/actions/runs/$RUN_ID"
+                                  }
+                                }
+                              }
+                            ]
                           }
                         }
                       ]
                     }
-                  ],
-                  "fixedFooter": {
-                    "primaryButton": {
-                      "text": "View Run",
-                      "color": {
-                        "red": 0,
-                        "green": 0.5,
-                        "blue": 1,
-                        "alpha": 1
-                      },
-                      "onClick": {
-                        "openLink": {
-                          "url": "https://github.com/$REPO/actions/runs/$RUN_ID"
-                        }
-                      }
-                    }
-                  }
+                  ]
                 }
               }
             ]
