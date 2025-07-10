@@ -29,6 +29,7 @@ jobs:
           ACTOR: ${{ github.actor }}
           REPO: ${{ github.repository }}
           SHA: ${{ github.sha }}
+          REF_NAME: ${{ github.ref_name }}
           RUN_ID: ${{ github.run_id }}
           WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
         run: |
@@ -46,7 +47,7 @@ jobs:
                 "card": {
                   "header": {
                     "title": "$STATUS",
-                    "subtitle": "Commit by $ACTOR",
+                    "subtitle": "Commit by $ACTOR on branch $REF_NAME",
                     "imageUrl": "https://developers.google.com/chat/images/quickstart-app-avatar.png",
                     "imageType": "CIRCLE"
                   },
@@ -56,6 +57,11 @@ jobs:
                         {
                           "decoratedText": {
                             "text": "**Commit**: [$SHA](https://github.com/$REPO/commit/$SHA)"
+                          }
+                        },
+                        {
+                          "decoratedText": {
+                            "text": "**Branch**: $REF_NAME"
                           }
                         },
                         {
