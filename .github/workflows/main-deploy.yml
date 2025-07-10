@@ -1,10 +1,11 @@
-name: Deploy to ec2 dev instance
+name: Deploy to EC2 Dev Instance
+
 on:
   push:
     branches: [main]
 
 jobs:
-  job_id:
+  deploy:
     runs-on: ubuntu-latest
     permissions:
       contents: "read"
@@ -13,6 +14,7 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+
       - name: Run your deploy script
         id: deploy_step
         run: |
@@ -21,23 +23,30 @@ jobs:
           sleep 5
 
       - name: Notify Google Chat
-        if: always() # this ensures it runs even if previous steps fail
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+          ACTOR: ${{ github.actor }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
         run: |
           STATUS="✅ Deployment Succeeded"
-          if [ "${{ job.status }}" != "success" ]; then
+          if [ "$JOB_STATUS" != "success" ]; then
             STATUS="❌ Deployment Failed"
           fi
 
-          curl -X POST ${{ secrets.WEBHOOK_URL }} \
-          -H 'Content-Type: application/json' \
-          -d @- <<EOF
+          cat <<EOF | curl -X POST "$WEBHOOK_URL" \
+            -H 'Content-Type: application/json' \
+            -d @-
           {
             "cardsV2": [
               {
                 "card": {
                   "header": {
-                    "title": "${STATUS}",
-                    "subtitle": "Commit by ${{ github.actor }}",
+                    "title": "$STATUS",
+                    "subtitle": "Commit by $ACTOR",
                     "imageUrl": "https://developers.google.com/chat/images/quickstart-app-avatar.png",
                     "imageType": "CIRCLE"
                   },
@@ -46,12 +55,12 @@ jobs:
                       "widgets": [
                         {
                           "decoratedText": {
-                            "text": "**Commit**: [${{ github.sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})"
+                            "text": "**Commit**: [$SHA](https://github.com/$REPO/commit/$SHA)"
                           }
                         },
                         {
                           "decoratedText": {
-                            "text": "**Message**: ${STATUS} for job _${{ github.job }}_"
+                            "text": "**Message**: $STATUS for job _deploy_"
                           }
                         }
                       ]
@@ -59,7 +68,7 @@ jobs:
                   ],
                   "fixedFooter": {
                     "primaryButton": {
-                      "text": "Share",
+                      "text": "View Run",
                       "color": {
                         "red": 0,
                         "green": 0.5,
@@ -68,7 +77,7 @@ jobs:
                       },
                       "onClick": {
                         "openLink": {
-                          "url": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                          "url": "https://github.com/$REPO/actions/runs/$RUN_ID"
                         }
                       }
                     }
