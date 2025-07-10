@@ -1,0 +1,78 @@
+name: Deploy to ec2 dev instance
+on:
+  push:
+    branches: [main]
+
+jobs:
+  job_id:
+    permissions:
+      contents: "read"
+      id-token: "write"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Run your deploy script
+        id: deploy_step
+        run: |
+          echo "Running deploy script..."
+          # simulate deployment
+          sleep 5
+
+      - name: Notify Google Chat
+        if: always() # this ensures it runs even if previous steps fail
+        run: |
+          STATUS="✅ Deployment Succeeded"
+          if [ "${{ job.status }}" != "success" ]; then
+            STATUS="❌ Deployment Failed"
+          fi
+
+          curl -X POST ${{ secrets.WEBHOOK_URL }} \
+          -H 'Content-Type: application/json' \
+          -d @- <<EOF
+          {
+            "cardsV2": [
+              {
+                "card": {
+                  "header": {
+                    "title": "${STATUS}",
+                    "subtitle": "Commit by ${{ github.actor }}",
+                    "imageUrl": "https://developers.google.com/chat/images/quickstart-app-avatar.png",
+                    "imageType": "CIRCLE"
+                  },
+                  "sections": [
+                    {
+                      "widgets": [
+                        {
+                          "decoratedText": {
+                            "text": "**Commit**: [${{ github.sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})"
+                          }
+                        },
+                        {
+                          "decoratedText": {
+                            "text": "**Message**: ${STATUS} for job _${{ github.job }}_"
+                          }
+                        }
+                      ]
+                    }
+                  ],
+                  "fixedFooter": {
+                    "primaryButton": {
+                      "text": "Share",
+                      "color": {
+                        "red": 0,
+                        "green": 0.5,
+                        "blue": 1,
+                        "alpha": 1
+                      },
+                      "onClick": {
+                        "openLink": {
+                          "url": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          }
