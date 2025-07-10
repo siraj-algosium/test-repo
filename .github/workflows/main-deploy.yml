@@ -18,9 +18,7 @@ jobs:
       - name: Get commit message
         id: get_commit
         run: |
-          echo "MESSAGE<<EOF" >> $GITHUB_ENV
-          git log -1 --pretty=format:%s >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+          echo "message=$(git log -1 --pretty=format:%s)" >> $GITHUB_OUTPUT
 
       - name: Run your deploy script
         id: deploy_step
@@ -38,7 +36,7 @@ jobs:
           SHA: ${{ github.sha }}
           REF_NAME: ${{ github.ref_name }}
           RUN_ID: ${{ github.run_id }}
-          COMMIT_MSG: ${{ env.MESSAGE }}
+          COMMIT_MSG: ${{ steps.get_commit.outputs.message }}
           WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
         run: |
           STATUS="✅ Deployment Succeeded"
